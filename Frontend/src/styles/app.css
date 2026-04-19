@@ -1,0 +1,74 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f3f5f7;
+  color: #222;}
+
+.app-shell {
+  display: flex;
+  justify-content: center;
+  padding: 30px 16px;}
+
+.card {
+  width: 100%;
+  max-width: 520px;
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.08);}
+
+.card.wide {
+  max-width: 1100px;}
+
+.form {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 20px;}
+
+input {
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;}
+
+button {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #0f62fe;
+  color: white;
+  cursor: pointer;}
+
+button.danger {
+  background: #d93025;}
+
+.button-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;}
+
+th, td {
+  border: 1px solid #e5e7eb;
+  padding: 12px;
+  text-align: left;}
+
+th {
+  background: #f9fafb;}
+
+.error {
+  color: #d93025;
+  font-weight: bold;}
+
+.success {
+  color: #0a7f36;
+  font-weight: bold;}
