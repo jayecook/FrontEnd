@@ -1,3 +1,53 @@
+### The purpose of this project is to provide an integrated frontend for all microservices 
+
+
+## For ease of deployment and development, Vite will be utilized (see below for details on that)
+
+
+## Current file structure (may change with more development):
+
+```
+└── 📁FrontEnd
+    └── 📁.vite
+        └── 📁deps
+            ├── _metadata.json
+            ├── package.json
+    └── 📁public
+        ├── favicon.svg
+        ├── icons.svg
+    └── 📁src
+        └── 📁api
+            ├── authAPI.js
+            ├── productAPI.js
+        └── 📁assets (can hold images of products at some point)
+        └── 📁components
+            ├── AdminDashboard.jsx
+            ├── LandingPage.jsx
+            ├── LoginPage.jsx
+            ├── ProductForm.jsx
+            ├── ProductList.jsx
+            ├── ProductRow.jsx
+            ├── PublicInventoryPage.jsx
+            ├── SearchFilters.jsx
+        └── 📁public
+            ├── index.html
+        └── 📁styles
+            ├── app.css
+            ├── index.css
+        ├── App.jsx
+        ├── main.jsx
+    ├── .DS_Store
+    ├── eslint.config.js
+    ├── index.html
+    ├── package-lock.json
+    ├── package.json
+    ├── README.md
+    └── vite.config.js
+```
+
+
+## Below is the default React + Vite documentation for those curious:
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
