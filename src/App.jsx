@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import LandingPage from "./components/LandingPage";
 import LoginPage from "./components/LoginPage";
-import PublicInventoryPage from "./components/PublicInventoryPage";
+import PublicPage from "./components/ProductPage";
 import AdminDashboard from "./components/AdminDashboard";
 
 import './styles/app.css';
@@ -34,7 +34,7 @@ function App() {
   if (screen === "browse") {
     return (
       <div className="app-shell">
-        <PublicInventoryPage onBack={() => setScreen("landing")} />
+        <PublicPage onBack={() => setScreen("landing")} />
       </div>
     );
   }
