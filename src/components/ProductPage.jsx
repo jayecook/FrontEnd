@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import './ProductPageStyle.css'
+import "../styles/ProductPageStyle.css";
 
-const API = "http://localhost:8080/products";
+const API = "http://localhost:8081/products";
 const TYPES = ["Material", "Safety", "Equipment"];
 
 const initialForm = { 
@@ -9,7 +9,8 @@ const initialForm = {
   product_description: "", 
   product_price: "", 
   product_type: "Material", 
-  product_count: ""
+  product_count: "",
+  threshold: ""
 };
 
 function App() {
@@ -20,7 +21,6 @@ function App() {
   const [toast, setToast] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
-  // NEW: Search & Filter States
   const [searchTerm, setSearchTerm] = useState("");
   const [searchCount, setSearchCount] = useState("");
   const [filterType, setFilterType] = useState("all");
@@ -30,26 +30,26 @@ function App() {
     fetchProducts();
   }, []);
 
-    const showToast = (msg, type = "success") => {
+  const showToast = (msg, type = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
   };
 
-    const fetchProducts = async () => {
+  const fetchProducts = async () => {
     try {
       setLoading(true);
       const res = await fetch(API);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
-    const normalizedProducts = data.map((product) => ({
-  ...product,
-  product_type: product.product_type ?? product.product_type ?? "",
-  product_count: Number(product.product_count ?? 0),
-}));;
+      const normalizedProducts = data.map((product) => ({
+        ...product,
+        product_type:  product.product_type ?? "",
+        product_count: Number(product.product_count ?? 0),
+        threshold:     Number(product.threshold ?? 0),   // NEW
+      }));
 
-console.log("normalizedProducts", normalizedProducts);
-setProducts(normalizedProducts);
+      setProducts(normalizedProducts);
     } catch (err) {
       console.error(err);
       showToast("Failed to fetch products", "error");
@@ -65,49 +65,52 @@ setProducts(normalizedProducts);
   };
 
   const handleSubmit = async () => {
-  if (!form.product_name.trim()) return showToast("Name is required", "error");
-  if (!form.product_count) return showToast("Count is required", "error");
-  if (!form.product_type.trim()) return showToast("Type is required", "error");
-  if (!form.product_price) return showToast("Price is required", "error");
-  if (!form.product_description.trim()) return showToast("Description is required", "error");
+    if (!form.product_name.trim())        return showToast("Name is required", "error");
+    if (!form.product_count)              return showToast("Count is required", "error");
+    if (!form.product_type.trim())        return showToast("Type is required", "error");
+    if (!form.product_price)              return showToast("Price is required", "error");
+    if (!form.product_description.trim()) return showToast("Description is required", "error");
+    if (form.threshold === "")            return showToast("Threshold is required", "error");  // NEW
 
-  const payload = {
-    product_name: form.product_name.trim(),
-    product_description: form.product_description.trim(),
-    product_price: parsePrice(form.product_price),
-    product_type: form.product_type,
-    product_count: parseInt(form.product_count, 10),
+    const payload = {
+      product_name:        form.product_name.trim(),
+      product_description: form.product_description.trim(),
+      product_price:       parsePrice(form.product_price),
+      product_type:        form.product_type,
+      product_count:       parseInt(form.product_count, 10),
+      threshold:           parseInt(form.threshold, 10),    // NEW
+    };
+
+    try {
+      const url = editingId ? `${API}/${editingId}` : API;
+      const method = editingId ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      await fetchProducts();
+      setForm(initialForm);
+      setEditingId(null);
+      showToast(editingId ? "Product updated!" : "Product added!");
+    } catch (err) {
+      showToast(`Operation failed: ${err.message}`, "error");
+    }
   };
-
-  try {
-    const url = editingId ? `${API}/${editingId}` : API;
-    const method = editingId ? "PUT" : "POST";
-
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-    await fetchProducts();
-    setForm(initialForm);
-    setEditingId(null);
-    showToast(editingId ? "Product updated!" : "Product added!");
-  } catch (err) {
-    showToast(`Operation failed: ${err.message}`, "error");
-  }
-};
 
   const handleEdit = (product) => {
     setEditingId(product.product_id);
     setForm({
-      product_name: product.product_name || "",
+      product_name:        product.product_name        || "",
       product_description: product.product_description || "",
-      product_price: product.product_price ?? "",
-      product_type: product.product_type || "Material",
-      product_count: product.product_count ?? "",
+      product_price:       product.product_price       ?? "",
+      product_type:        product.product_type        || "Material",
+      product_count:       product.product_count       ?? "",
+      threshold:           product.threshold           ?? "",  // NEW
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -129,46 +132,46 @@ setProducts(normalizedProducts);
     setEditingId(null);
   };
 
-  // NEW: Filtering & Sorting Logic
   const filteredProducts = useMemo(() => {
   return products
     .filter((product) => {
-      const nameValue = product.product_name?.toLowerCase() || "";
-      const idValue = String(product.product_id ?? "");
-      const countValue = String(product.product_count ?? "");
-      const typeValue = product.product_type || "";
+      const nameValue      = product.product_name?.toLowerCase() || "";
+      const idValue        = String(product.product_id ?? "");
+      const countValue     = String(product.product_count ?? "");
+      const thresholdValue = String(product.threshold ?? "");
+      const typeValue      = product.product_type || "";
 
+      // Primary search box targets whichever field is selected in sortBy
       let matchesMainSearch = true;
-
       if (searchTerm.trim() !== "") {
-        if (sortBy === "id") {
-          matchesMainSearch = idValue.includes(searchTerm.trim());
-        } else if (sortBy === "name") {
-          matchesMainSearch = nameValue.includes(searchTerm.toLowerCase().trim());
-        } else if (sortBy === "count") {
-          matchesMainSearch = countValue.includes(searchTerm.trim());
-        }
+        if (sortBy === "id")             matchesMainSearch = idValue.includes(searchTerm.trim());
+        else if (sortBy === "name")      matchesMainSearch = nameValue.includes(searchTerm.toLowerCase().trim());
+        else if (sortBy === "count")     matchesMainSearch = countValue.includes(searchTerm.trim());
+        else if (sortBy === "threshold") matchesMainSearch = thresholdValue.includes(searchTerm.trim());
       }
 
-      const matchesCountSearch =
-        searchCount.trim() === "" || countValue.includes(searchCount.trim());
+      // Secondary search box targets count normally, but threshold when in threshold mode
+      const secondaryValue = sortBy === "threshold" ? thresholdValue : countValue;
+      const matchesSecondarySearch =
+        searchCount.trim() === "" || secondaryValue.includes(searchCount.trim());
 
       const matchesType =
         filterType === "all" || typeValue === filterType;
 
-      return matchesMainSearch && matchesCountSearch && matchesType;
+      return matchesMainSearch && matchesSecondarySearch && matchesType;
     })
     .sort((a, b) => {
-      if (sortBy === "id") return (a.product_id ?? 0) - (b.product_id ?? 0);
-      if (sortBy === "name") return (a.product_name || "").localeCompare(b.product_name || "");
-      if (sortBy === "count") return (a.product_count ?? 0) - (b.product_count ?? 0);
+      if (sortBy === "id")        return (a.product_id ?? 0) - (b.product_id ?? 0);
+      if (sortBy === "name")      return (a.product_name || "").localeCompare(b.product_name || "");
+      if (sortBy === "count")     return (a.product_count ?? 0) - (b.product_count ?? 0);
+      if (sortBy === "threshold") return (a.threshold ?? 0) - (b.threshold ?? 0);
       return 0;
     });
 }, [products, searchTerm, searchCount, filterType, sortBy]);
 
-return (
-  <>
-    <div className="app">
+  return (
+    <>
+      <div className="app">
         {/* Header */}
         <div className="header">
           <div className="header-tag">inventory system</div>
@@ -176,47 +179,46 @@ return (
           <div className="header-sub">Manage your product catalog</div>
         </div>
 
-        {/* NEW: Search & Filter Bar */}
-       <div className="search-filter-bar">
-      <div className="search-group">
+        {/* Search & Filter Bar */}
+        <div className="search-filter-bar">
+        <div className="search-group">
+            <input
+            type="text"
+            placeholder={`Search by ${sortBy === 'id' ? 'Product ID' : sortBy === 'name' ? 'Name' : sortBy === 'count' ? 'Count' : 'Threshold'}...`}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            />
+        </div>
         <input
-        type="text"
-        placeholder={`Search by ${sortBy === 'id' ? 'Product ID' : sortBy === 'name' ? 'Name' : 'Count'}...`}
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-    />
-  </div>
-        <input
-        type="number"
-        placeholder="Search by count"
-        value={searchCount}
-        onChange={e => setSearchCount(e.target.value)}
-      />
-  
-          <div className="filter-group">
-            <select 
-            value={filterType} 
+            type="number"
+            placeholder={sortBy === "threshold" ? "Search by threshold" : "Search by count"}
+            value={searchCount}
+            onChange={e => setSearchCount(e.target.value)}
+        />
+        <div className="filter-group">
+            <select
+            value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
             className="filter-select"
-    >
-          <option value="all">All Types</option>
+            >
+            <option value="all">All Types</option>
             {TYPES.map(type => (
-           <option key={type} value={type}>{type}</option>
-           ))}
-        </select>
+                <option key={type} value={type}>{type}</option>
+            ))}
+            </select>
         </div>
-
-          <div className="sort-group">
-            <select 
-          value={sortBy} 
-          onChange={(e) => setSortBy(e.target.value)}
-          className="sort-select"
-        >
-          <option value="id">Sort by ID</option>
-          <option value="name">Sort by Name</option>
-          <option value="count">Sort by Count</option>
-      </select>
-      </div>
+        <div className="sort-group">
+            <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="sort-select"
+            >
+            <option value="id">Sort by ID</option>
+            <option value="name">Sort by Name</option>
+            <option value="count">Sort by Count</option>
+            <option value="threshold">Sort by Threshold</option>
+            </select>
+        </div>
         </div>
 
         {/* Form */}
@@ -236,7 +238,7 @@ return (
                 onKeyDown={e => e.key === 'Enter' && handleSubmit()}
               />
             </div>
-            
+
             <div className="field">
               <label>Count</label>
               <input
@@ -245,6 +247,17 @@ return (
                 placeholder="0"
                 value={form.product_count}
                 onChange={e => setForm({ ...form, product_count: e.target.value })}
+              />
+            </div>
+
+            <div className="field">
+              <label>Threshold</label>    {/* NEW */}
+              <input
+                type="number"
+                min="0"
+                placeholder="0"
+                value={form.threshold}
+                onChange={e => setForm({ ...form, threshold: e.target.value })}
               />
             </div>
 
@@ -319,7 +332,7 @@ return (
                 style={{ animationDelay: `${i * 40}ms` }}
               >
                 <div className="product-id">#{product.product_id}</div>
-                
+
                 <div className="product-main">
                   <div className="product-name">{product.product_name}</div>
                   <div className="product-type">{product.product_type}</div>
@@ -328,9 +341,13 @@ return (
 
                 <div className="product-stats">
                   <div className="product-count">
-                  <span className="count-label">Count: </span>
-                  <span className="count-value">{product.product_count}</span>
-            </div>
+                    <span className="count-label">Count: </span>
+                    <span className="count-value">{product.product_count}</span>
+                  </div>
+                  <div className="product-threshold">        {/* NEW */}
+                    <span className="count-label">Threshold: </span>
+                    <span className="count-value">{product.threshold}</span>
+                  </div>
                   <div className={`product-price ${product.product_price == null ? 'null-price' : ''}`}>
                     {product.product_price != null ? `$${product.product_price.toFixed(2)}` : 'N/A'}
                   </div>
@@ -360,8 +377,7 @@ return (
         </div>
       )}
 
-      {/* Toast */}
-           {toast && (
+      {toast && (
         <div className={`toast ${toast.type}`}>
           {toast.type === 'success' ? '✓' : '✗'} {toast.msg}
         </div>
